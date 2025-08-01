@@ -538,8 +538,7 @@ async def get_gpt_store_schema():
                     "ApiKeyAuth": {
                         "type": "apiKey",
                         "in": "header",
-                        "name": "Authorization",
-                        "description": "Enter your Ambivo JWT token with 'Bearer ' prefix"
+                        "name": "Authorization"
                     }
                 }
             },

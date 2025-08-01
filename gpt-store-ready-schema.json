@@ -15,8 +15,7 @@
       "ApiKeyAuth": {
         "type": "apiKey",
         "in": "header",
-        "name": "Authorization",
-        "description": "Enter your Ambivo JWT token with 'Bearer ' prefix (e.g., 'Bearer your_jwt_token_here')"
+        "name": "Authorization"
       }
     },
     "schemas": {
