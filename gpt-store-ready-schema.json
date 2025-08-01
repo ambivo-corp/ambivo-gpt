@@ -12,10 +12,9 @@
   ],
   "components": {
     "securitySchemes": {
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization"
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
       }
     },
     "schemas": {
@@ -65,7 +64,7 @@
   },
   "security": [
     {
-      "ApiKeyAuth": []
+      "bearerAuth": []
     }
   ],
   "paths": {
@@ -76,7 +75,7 @@
         "description": "Execute natural language queries against Ambivo CRM data",
         "security": [
           {
-            "ApiKeyAuth": []
+            "bearerAuth": []
           }
         ],
         "requestBody": {

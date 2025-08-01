@@ -332,31 +332,12 @@ async def get_ai_plugin():
 @app.post("/query", operation_id="queryData", summary="Query CRM data", description="Execute natural language query against CRM data")
 async def natural_language_query(
     request: QueryRequest,
-    authorization: Optional[str] = Header(None)
+    token: str = Depends(get_auth_token)
 ):
     """Execute natural language query"""
     try:
         query_text = request.query
         format_type = request.response_format
-        
-        # Debug: return what we received
-        if not authorization:
-            return {
-                "debug": "No authorization header received",
-                "query": query_text,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "success": False
-            }
-        
-        if not authorization.startswith("Bearer "):
-            return {
-                "debug": f"Authorization header format wrong: '{authorization}'",
-                "query": query_text,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "success": False
-            }
-            
-        token = authorization[7:]  # Remove "Bearer " prefix
         
         if not query_text:
             raise HTTPException(status_code=400, detail="Query parameter is required")
@@ -366,7 +347,7 @@ async def natural_language_query(
         api_client.set_auth_token(token)
         
         try:
-            # Call the MCP tool directly (no event loop issues!)
+            # Call the MCP tool directly
             result = await handle_call_tool('natural_query', {
                 'query': query_text,
                 'response_format': format_type
@@ -554,21 +535,20 @@ async def get_gpt_store_schema():
             "servers": [{"url": "https://gpt.ambivo.com"}],
             "components": {
                 "securitySchemes": {
-                    "ApiKeyAuth": {
-                        "type": "apiKey",
-                        "in": "header",
-                        "name": "Authorization"
+                    "bearerAuth": {
+                        "type": "http",
+                        "scheme": "bearer"
                     }
                 }
             },
-            "security": [{"ApiKeyAuth": []}],
+            "security": [{"bearerAuth": []}],
             "paths": {
                 "/query": {
                     "post": {
                         "operationId": "queryAmbivoCRM",
                         "summary": "Query CRM Data",
                         "description": "Execute natural language queries against Ambivo CRM data",
-                        "security": [{"ApiKeyAuth": []}],
+                        "security": [{"bearerAuth": []}],
                         "requestBody": {
                             "required": True,
                             "content": {
@@ -607,15 +587,6 @@ async def debug_info():
         }
     }
 
-@app.post("/test-auth")
-async def test_auth(request: QueryRequest, authorization: Optional[str] = Header(None)):
-    """Test endpoint to debug auth headers"""
-    return {
-        "received_auth_header": authorization,
-        "has_bearer": authorization.startswith("Bearer ") if authorization else False,
-        "query": request.query,
-        "timestamp": datetime.now(UTC).isoformat()
-    }
 
 
 # For running with uvicorn
