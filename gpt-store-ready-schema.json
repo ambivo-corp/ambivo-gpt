@@ -1,0 +1,117 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ambivo CRM API",
+    "description": "Query Ambivo CRM data using natural language. Each user needs their own Ambivo API token.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://gpt.ambivo.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Enter your Ambivo JWT token with 'Bearer ' prefix (e.g., 'Bearer your_jwt_token_here')"
+      }
+    },
+    "schemas": {
+      "QueryRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language query about CRM data",
+            "example": "Show me recent leads"
+          },
+          "response_format": {
+            "type": "string",
+            "enum": ["table", "natural", "both"],
+            "default": "both",
+            "description": "Response format: table (structured data), natural (summary), or both"
+          }
+        },
+        "required": ["query"]
+      },
+      "QueryResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The original query"
+          },
+          "result": {
+            "type": "string", 
+            "description": "Query results and data"
+          },
+          "response_format": {
+            "type": "string",
+            "description": "Format used for response"
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Whether query was successful"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "When query was executed"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/query": {
+      "post": {
+        "operationId": "queryAmbivoCRM",
+        "summary": "Query CRM Data",
+        "description": "Execute natural language queries against Ambivo CRM data",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Query executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid query format"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing API token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  }
+}
