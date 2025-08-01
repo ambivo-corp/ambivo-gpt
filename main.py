@@ -332,13 +332,32 @@ async def get_ai_plugin():
 @app.post("/query", operation_id="queryData", summary="Query CRM data", description="Execute natural language query against CRM data")
 async def natural_language_query(
     request: QueryRequest,
-    token: str = Depends(get_auth_token)
+    authorization: Optional[str] = Header(None)
 ):
     """Execute natural language query"""
     try:
         query_text = request.query
         format_type = request.response_format
+        
+        # Debug: return what we received
+        if not authorization:
+            return {
+                "debug": "No authorization header received",
+                "query": query_text,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "success": False
+            }
+        
+        if not authorization.startswith("Bearer "):
+            return {
+                "debug": f"Authorization header format wrong: '{authorization}'",
+                "query": query_text,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "success": False
+            }
             
+        token = authorization[7:]  # Remove "Bearer " prefix
+        
         if not query_text:
             raise HTTPException(status_code=400, detail="Query parameter is required")
         

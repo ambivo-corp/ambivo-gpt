@@ -111,55 +111,6 @@
           }
         }
       }
-    },
-    "/test-auth": {
-        "post": {
-          "operationId": "testAuth",
-          "summary": "Test Authentication",
-          "description": "Test if authentication headers are being sent correctly",
-          "security": [
-            {
-              "ApiKeyAuth": []
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryRequest"
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "Authentication test results",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "received_auth_header": {
-                        "type": "string"
-                      },
-                      "has_bearer": {
-                        "type": "boolean"
-                      },
-                      "query": {
-                        "type": "string"
-                      },
-                      "timestamp": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   }
 }
