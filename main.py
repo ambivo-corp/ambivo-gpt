@@ -512,6 +512,66 @@ async def get_clean_gpt_schema():
             }
         }
 
+@app.get("/gpt-store-ready.json")
+async def get_gpt_store_schema():
+    """Get GPT Store-ready OpenAPI schema with user API key authentication"""
+    import os
+    import json
+    
+    try:
+        schema_path = os.path.join(os.path.dirname(__file__), "gpt-store-ready-schema.json")
+        with open(schema_path, 'r') as f:
+            schema = json.load(f)
+        return schema
+    except Exception as e:
+        # Fallback GPT Store schema if file not found
+        return {
+            "openapi": "3.1.0",
+            "info": {
+                "title": "Ambivo CRM API",
+                "description": "Query Ambivo CRM data using natural language. Each user needs their own Ambivo API token.",
+                "version": "1.0.0"
+            },
+            "servers": [{"url": "https://gpt.ambivo.com"}],
+            "components": {
+                "securitySchemes": {
+                    "ApiKeyAuth": {
+                        "type": "apiKey",
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Enter your Ambivo JWT token with 'Bearer ' prefix"
+                    }
+                }
+            },
+            "security": [{"ApiKeyAuth": []}],
+            "paths": {
+                "/query": {
+                    "post": {
+                        "operationId": "queryAmbivoCRM",
+                        "summary": "Query CRM Data",
+                        "description": "Execute natural language queries against Ambivo CRM data",
+                        "security": [{"ApiKeyAuth": []}],
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "query": {"type": "string"},
+                                            "response_format": {"type": "string", "default": "both"}
+                                        },
+                                        "required": ["query"]
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {"200": {"description": "Query executed successfully"}}
+                    }
+                }
+            }
+        }
+
 @app.get("/debug")
 async def debug_info():
     """Debug endpoint"""
@@ -523,6 +583,7 @@ async def debug_info():
             "health": "/health",
             "openapi": "/openapi.json",
             "clean_gpt": "/gpt-clean.json",
+            "gpt_store": "/gpt-store-ready.json",
             "query": "/query",
             "tools": "/tools"
         }

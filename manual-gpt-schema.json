@@ -1,0 +1,76 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ambivo CRM API",
+    "description": "Query Ambivo CRM data using natural language",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://gpt.ambivo.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/query": {
+      "post": {
+        "operationId": "queryAmbivoCRM",
+        "summary": "Query CRM Data",
+        "description": "Execute natural language queries against Ambivo CRM data",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Natural language query about CRM data",
+                    "example": "Show me recent leads"
+                  },
+                  "response_format": {
+                    "type": "string",
+                    "enum": ["table", "natural", "both"],
+                    "default": "both",
+                    "description": "Response format"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Query results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {"type": "string"},
+                    "result": {"type": "string"},
+                    "success": {"type": "boolean"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
