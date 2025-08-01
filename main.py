@@ -588,6 +588,16 @@ async def debug_info():
         }
     }
 
+@app.post("/test-auth")
+async def test_auth(request: QueryRequest, authorization: Optional[str] = Header(None)):
+    """Test endpoint to debug auth headers"""
+    return {
+        "received_auth_header": authorization,
+        "has_bearer": authorization.startswith("Bearer ") if authorization else False,
+        "query": request.query,
+        "timestamp": datetime.now(UTC).isoformat()
+    }
+
 
 # For running with uvicorn
 if __name__ == "__main__":
