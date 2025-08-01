@@ -110,8 +110,9 @@
             "description": "Internal server error"
           }
         }
-      },
-      "/test-auth": {
+      }
+    },
+    "/test-auth": {
         "post": {
           "operationId": "testAuth",
           "summary": "Test Authentication",
