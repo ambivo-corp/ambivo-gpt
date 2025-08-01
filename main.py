@@ -55,7 +55,7 @@ app.add_middleware(
 
 
 # Auth dependency
-async def get_auth_token(authorization: Optional[str] = Header(None)) -> str:
+async def get_auth_token(authorization: Optional[str] = Header(None, include_in_schema=False)) -> str:
     """Extract and validate auth token from Authorization header"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
@@ -119,37 +119,181 @@ async def health_check():
 
 
 @app.get("/openapi.json")
-@app.post("/openapi.json")
+@app.get("/gpt-schema.json")  # Alternative clean endpoint
 async def get_openapi_schema():
-    """Get OpenAPI schema - FastAPI generates this automatically"""
-    schema = app.openapi()
-    
-    # Ensure the servers section is exactly what ChatGPT expects
-    schema["servers"] = [
-        {
-            "url": "https://gpt.ambivo.com",
-            "description": "Production server"
+    """Get clean OpenAPI schema specifically for ChatGPT"""
+    # Create a completely clean schema manually for GPT compatibility
+    clean_schema = {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "Ambivo CRM API",
+            "description": "API for accessing and querying Ambivo CRM data using natural language and direct tool calls",
+            "version": "1.0.0"
+        },
+        "servers": [
+            {
+                "url": "https://gpt.ambivo.com",
+                "description": "Production server"
+            }
+        ],
+        "components": {
+            "securitySchemes": {
+                "bearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "description": "JWT Bearer token for authentication"
+                }
+            },
+            "schemas": {
+                "QueryRequest": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Natural language query about CRM data",
+                            "example": "Show me leads created this week"
+                        },
+                        "response_format": {
+                            "type": "string",
+                            "enum": ["table", "natural", "both"],
+                            "default": "both",
+                            "description": "Format for the response"
+                        }
+                    },
+                    "required": ["query"]
+                },
+                "ToolRequest": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the tool to execute",
+                            "example": "natural_query"
+                        },
+                        "arguments": {
+                            "type": "object",
+                            "description": "Arguments for the tool",
+                            "example": {"query": "count all leads", "response_format": "natural"}
+                        }
+                    },
+                    "required": ["name"]
+                },
+                "QueryResponse": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "result": {"type": "string"},
+                        "response_format": {"type": "string"},
+                        "timestamp": {"type": "string"},
+                        "success": {"type": "boolean"}
+                    }
+                },
+                "ToolResponse": {
+                    "type": "object",
+                    "properties": {
+                        "result": {"type": "string"},
+                        "tool_name": {"type": "string"},
+                        "success": {"type": "boolean"}
+                    }
+                }
+            }
+        },
+        "security": [{"bearerAuth": []}],
+        "paths": {
+            "/query": {
+                "post": {
+                    "operationId": "queryData",
+                    "summary": "Query CRM data",
+                    "description": "Execute natural language query against CRM data",
+                    "security": [{"bearerAuth": []}],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/QueryRequest"}
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Successful response",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/QueryResponse"}
+                                }
+                            }
+                        },
+                        "400": {"description": "Bad request"},
+                        "401": {"description": "Unauthorized"},
+                        "500": {"description": "Internal server error"}
+                    }
+                }
+            },
+            "/tools": {
+                "get": {
+                    "operationId": "listTools",
+                    "summary": "List available tools",
+                    "description": "Get list of all available CRM tools",
+                    "security": [{"bearerAuth": []}],
+                    "responses": {
+                        "200": {
+                            "description": "List of available tools",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "tools": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "name": {"type": "string"},
+                                                        "description": {"type": "string"},
+                                                        "parameters": {"type": "object"}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "401": {"description": "Unauthorized"}
+                    }
+                },
+                "post": {
+                    "operationId": "executeTools",
+                    "summary": "Execute a specific tool",
+                    "description": "Execute a specific CRM tool with given arguments",
+                    "security": [{"bearerAuth": []}],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ToolRequest"}
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Successful response",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/ToolResponse"}
+                                }
+                            }
+                        },
+                        "400": {"description": "Bad request"},
+                        "401": {"description": "Unauthorized"},
+                        "500": {"description": "Internal server error"}
+                    }
+                }
+            }
         }
-    ]
-    
-    # Ensure OpenAPI version is 3.1.0 (required by ChatGPT)
-    schema["openapi"] = "3.1.0"
-    
-    # Add security scheme for Bearer tokens
-    if "components" not in schema:
-        schema["components"] = {}
-    if "securitySchemes" not in schema["components"]:
-        schema["components"]["securitySchemes"] = {}
-    
-    schema["components"]["securitySchemes"]["bearerAuth"] = {
-        "type": "http",
-        "scheme": "bearer"
     }
     
-    # Add global security requirement
-    schema["security"] = [{"bearerAuth": []}]
-    
-    return schema
+    return clean_schema
 
 
 @app.get("/openapi.yaml")
@@ -186,24 +330,14 @@ async def get_ai_plugin():
 
 
 @app.post("/query", operation_id="queryData", summary="Query CRM data", description="Execute natural language query against CRM data")
-@app.get("/query", operation_id="queryDataGet", summary="Query CRM data (GET)", description="Execute natural language query via GET parameters")
 async def natural_language_query(
-    request: QueryRequest = None,
-    token: str = Depends(get_auth_token),
-    query: str = None,
-    response_format: str = "both"
+    request: QueryRequest,
+    token: str = Depends(get_auth_token)
 ):
     """Execute natural language query"""
     try:
-        # Handle both POST (JSON body) and GET (query parameters)
-        if request:
-            # POST request with JSON body
-            query_text = request.query
-            format_type = request.response_format
-        else:
-            # GET request with query parameters
-            query_text = query
-            format_type = response_format
+        query_text = request.query
+        format_type = request.response_format
             
         if not query_text:
             raise HTTPException(status_code=400, detail="Query parameter is required")
@@ -287,12 +421,9 @@ async def list_tools(token: str = Depends(get_auth_token)):
 
 
 @app.post("/tools")
-@app.get("/tools/execute")
 async def execute_tool(
-    request: ToolRequest = None,
-    token: str = Depends(get_auth_token),
-    name: str = None,
-    arguments: str = "{}"
+    request: ToolRequest,
+    token: str = Depends(get_auth_token)
 ):
     """Execute a specific tool"""
     try:
