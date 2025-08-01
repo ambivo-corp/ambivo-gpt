@@ -458,6 +458,60 @@ async def execute_tool(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/gpt-clean.json")
+async def get_clean_gpt_schema():
+    """Get completely clean OpenAPI schema for ChatGPT - no parameter conflicts"""
+    import os
+    import json
+    
+    # Read the static clean schema file
+    try:
+        schema_path = os.path.join(os.path.dirname(__file__), "gpt-clean-schema.json")
+        with open(schema_path, 'r') as f:
+            clean_schema = json.load(f)
+        return clean_schema
+    except Exception as e:
+        # Fallback minimal schema if file not found
+        return {
+            "openapi": "3.1.0",
+            "info": {
+                "title": "Ambivo CRM API",
+                "version": "1.0.0"
+            },
+            "servers": [{"url": "https://gpt.ambivo.com"}],
+            "components": {
+                "securitySchemes": {
+                    "bearerAuth": {"type": "http", "scheme": "bearer"}
+                }
+            },
+            "security": [{"bearerAuth": []}],
+            "paths": {
+                "/query": {
+                    "post": {
+                        "operationId": "queryData",
+                        "summary": "Query CRM data",
+                        "security": [{"bearerAuth": []}],
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "query": {"type": "string"},
+                                            "response_format": {"type": "string", "default": "both"}
+                                        },
+                                        "required": ["query"]
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {"200": {"description": "Success"}}
+                    }
+                }
+            }
+        }
+
 @app.get("/debug")
 async def debug_info():
     """Debug endpoint"""
@@ -467,7 +521,8 @@ async def debug_info():
         "timestamp": datetime.now(UTC).isoformat(),
         "endpoints": {
             "health": "/health",
-            "openapi": "/openapi.json", 
+            "openapi": "/openapi.json",
+            "clean_gpt": "/gpt-clean.json",
             "query": "/query",
             "tools": "/tools"
         }
