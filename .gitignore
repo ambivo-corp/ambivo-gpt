@@ -1,0 +1,93 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+ambivo_agents.egg-info/
+agent_config.yaml
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# API Keys and secrets
+*.key
+*.secret
+*.pem
+*.p12
+*.pfx
+secrets/
+config/secrets/
+
+# Backup files that might contain secrets
+*.backup
+*.bak
+*_backup
+*_bak
+
+# Test outputs and temporary files
+.pytest_cache/
+test_outputs/
+
+# Virtual environment
+venv/
+ENV/
+
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp/cache files
+.cache/
+.tmp/
+tmp/
+*.tmp
+
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Application specific
+/uploads/
+/downloads/
+/temp/
+*.log
+/instance/
+
+# Electron installer build artifacts
+electron-installer/node_modules/
+electron-installer/dist/
+electron-installer/out/
+
+# Don't commit built installers
+*.dmg
+*.exe
+*.deb
+*.AppImage
+*.snap
+
+# Claude config
+.claude/
+*.local.json
