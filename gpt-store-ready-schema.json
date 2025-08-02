@@ -31,6 +31,11 @@
             "enum": ["table", "natural", "both"],
             "default": "both",
             "description": "Response format: table (structured data), natural (summary), or both"
+          },
+          "api_key": {
+            "type": "string",
+            "description": "User's Ambivo API key (alternative to Authorization header)",
+            "example": "your-api-key-here"
           }
         },
         "required": ["query"]
@@ -107,6 +112,43 @@
           },
           "500": {
             "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/debug-auth": {
+      "post": {
+        "operationId": "debugAuth",
+        "summary": "Debug Auth Headers",
+        "description": "Debug endpoint to check what authorization headers are being received",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Debug information about auth headers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received_authorization_header": {"type": "string"},
+                    "has_authorization": {"type": "boolean"},
+                    "authorization_starts_with_bearer": {"type": "boolean"},
+                    "query": {"type": "string"},
+                    "timestamp": {"type": "string"},
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
           }
         }
       }

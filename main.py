@@ -26,6 +26,7 @@ from mcp_core import handle_list_tools, handle_call_tool, api_client
 class QueryRequest(BaseModel):
     query: str
     response_format: str = "both"
+    api_key: Optional[str] = None  # Alternative to Authorization header
 
 
 class ToolRequest(BaseModel):
@@ -56,18 +57,20 @@ app.add_middleware(
 
 # Auth dependency
 async def get_auth_token(authorization: Optional[str] = Header(None, include_in_schema=False)) -> str:
-    """Extract and validate auth token from Authorization header"""
+    """Extract and validate auth token from Authorization header - accepts with or without 'Bearer ' prefix"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
     
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer token required")
+    # Handle both "Bearer token" and just "token" formats
+    if authorization.startswith("Bearer "):
+        token = authorization[7:]  # Remove "Bearer " prefix
+    else:
+        token = authorization  # Use as-is if no Bearer prefix
     
-    token = authorization[7:]  # Remove "Bearer " prefix
-    if not token:
+    if not token or token.strip() == "":
         raise HTTPException(status_code=401, detail="Token cannot be empty")
     
-    return token
+    return token.strip()
 
 
 # Routes
@@ -332,15 +335,32 @@ async def get_ai_plugin():
 @app.post("/query", operation_id="queryData", summary="Query CRM data", description="Execute natural language query against CRM data")
 async def natural_language_query(
     request: QueryRequest,
-    token: str = Depends(get_auth_token)
+    authorization: Optional[str] = Header(None)
 ):
-    """Execute natural language query"""
+    """Execute natural language query - supports both Authorization header and api_key in body"""
     try:
         query_text = request.query
         format_type = request.response_format
         
         if not query_text:
             raise HTTPException(status_code=400, detail="Query parameter is required")
+        
+        # Get token from either Authorization header or request body
+        token = None
+        if authorization:
+            # Handle both "Bearer token" and just "token" formats
+            if authorization.startswith("Bearer "):
+                token = authorization[7:].strip()
+            else:
+                token = authorization.strip()
+        elif request.api_key:
+            token = request.api_key.strip()
+        
+        if not token:
+            raise HTTPException(
+                status_code=401, 
+                detail="API key required - provide either Authorization header or api_key in request body"
+            )
         
         # Set auth token for this request
         original_token = api_client.auth_token
@@ -570,6 +590,54 @@ async def get_gpt_store_schema():
             }
         }
 
+@app.get("/gpt-simple.json")
+async def get_simple_gpt_schema():
+    """Get simplified GPT schema with API key in request body only"""
+    import os
+    import json
+    
+    try:
+        schema_path = os.path.join(os.path.dirname(__file__), "gpt-simple-schema.json")
+        with open(schema_path, 'r') as f:
+            schema = json.load(f)
+        return schema
+    except Exception as e:
+        # Fallback simplified schema if file not found
+        return {
+            "openapi": "3.1.0",
+            "info": {
+                "title": "Ambivo CRM API",
+                "description": "Query Ambivo CRM data using natural language",
+                "version": "1.0.0"
+            },
+            "servers": [{"url": "https://gpt.ambivo.com"}],
+            "paths": {
+                "/query": {
+                    "post": {
+                        "operationId": "queryAmbivoCRM",
+                        "summary": "Query CRM Data",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "query": {"type": "string"},
+                                            "api_key": {"type": "string"},
+                                            "response_format": {"type": "string", "default": "both"}
+                                        },
+                                        "required": ["query", "api_key"]
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {"200": {"description": "Success"}}
+                    }
+                }
+            }
+        }
+
 @app.get("/debug")
 async def debug_info():
     """Debug endpoint"""
@@ -582,9 +650,22 @@ async def debug_info():
             "openapi": "/openapi.json",
             "clean_gpt": "/gpt-clean.json",
             "gpt_store": "/gpt-store-ready.json",
+            "gpt_simple": "/gpt-simple.json",
             "query": "/query",
             "tools": "/tools"
         }
+    }
+
+@app.post("/debug-auth")
+async def debug_auth_headers(request: QueryRequest, authorization: Optional[str] = Header(None)):
+    """Debug endpoint to see what auth headers are being received"""
+    return {
+        "received_authorization_header": authorization,
+        "has_authorization": authorization is not None,
+        "authorization_starts_with_bearer": authorization.startswith("Bearer ") if authorization else False,
+        "query": request.query,
+        "timestamp": datetime.now(UTC).isoformat(),
+        "message": "This is a debug endpoint to check auth headers"
     }
 
 
