@@ -27,6 +27,8 @@ class QueryRequest(BaseModel):
     query: str
     response_format: str = "both"
     api_key: Optional[str] = None  # Alternative to Authorization header
+    enable_memory: Optional[bool] = None  # Optional memory enablement
+    session_id: Optional[str] = None  # Optional session identifier
 
 
 class ToolRequest(BaseModel):
@@ -161,6 +163,14 @@ async def get_openapi_schema():
                             "enum": ["table", "natural", "both"],
                             "default": "both",
                             "description": "Format for the response"
+                        },
+                        "enable_memory": {
+                            "type": "boolean",
+                            "description": "Optional flag to enable memory for the query session"
+                        },
+                        "session_id": {
+                            "type": "string",
+                            "description": "Optional session identifier for memory management"
                         }
                     },
                     "required": ["query"]
@@ -367,11 +377,20 @@ async def natural_language_query(
         api_client.set_auth_token(token)
         
         try:
-            # Call the MCP tool directly
-            result = await handle_call_tool('natural_query', {
+            # Prepare arguments for the MCP tool
+            tool_args = {
                 'query': query_text,
                 'response_format': format_type
-            })
+            }
+            
+            # Add optional parameters if provided
+            if request.enable_memory is not None:
+                tool_args['enable_memory'] = request.enable_memory
+            if request.session_id is not None:
+                tool_args['session_id'] = request.session_id
+            
+            # Call the MCP tool directly
+            result = await handle_call_tool('natural_query', tool_args)
             
             # Format response
             response_text = ""
@@ -519,7 +538,9 @@ async def get_clean_gpt_schema():
                                         "type": "object",
                                         "properties": {
                                             "query": {"type": "string"},
-                                            "response_format": {"type": "string", "default": "both"}
+                                            "response_format": {"type": "string", "default": "both"},
+                                            "enable_memory": {"type": "boolean"},
+                                            "session_id": {"type": "string"}
                                         },
                                         "required": ["query"]
                                     }
@@ -577,7 +598,9 @@ async def get_gpt_store_schema():
                                         "type": "object",
                                         "properties": {
                                             "query": {"type": "string"},
-                                            "response_format": {"type": "string", "default": "both"}
+                                            "response_format": {"type": "string", "default": "both"},
+                                            "enable_memory": {"type": "boolean"},
+                                            "session_id": {"type": "string"}
                                         },
                                         "required": ["query"]
                                     }
@@ -625,7 +648,9 @@ async def get_simple_gpt_schema():
                                         "properties": {
                                             "query": {"type": "string"},
                                             "api_key": {"type": "string"},
-                                            "response_format": {"type": "string", "default": "both"}
+                                            "response_format": {"type": "string", "default": "both"},
+                                            "enable_memory": {"type": "boolean"},
+                                            "session_id": {"type": "string"}
                                         },
                                         "required": ["query", "api_key"]
                                     }

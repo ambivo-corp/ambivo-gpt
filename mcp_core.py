@@ -86,7 +86,7 @@ class AmbivoAPIClient:
         raise last_exception
 
     async def natural_query(
-        self, query: str, response_format: str = "both"
+        self, query: str, response_format: str = "both", enable_memory: Optional[bool] = None, session_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute a natural language query against entity data"""
         
@@ -103,6 +103,12 @@ class AmbivoAPIClient:
             )
 
         payload = {"query": query, "response_format": response_format}
+        
+        # Add optional parameters if provided
+        if enable_memory is not None:
+            payload["enable_memory"] = enable_memory
+        if session_id is not None:
+            payload["session_id"] = session_id
         url = f"{self.base_url}/entity/natural_query"
 
         try:
@@ -166,6 +172,14 @@ async def handle_list_tools() -> List[Tool]:
                         "default": "both",
                         "description": "Format of the response: 'table' for structured data, "
                         "'natural' for natural language description, 'both' for both formats",
+                    },
+                    "enable_memory": {
+                        "type": "boolean",
+                        "description": "Optional flag to enable memory for the query session",
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Optional session identifier for memory management",
                     },
                 },
                 "required": ["query"],
@@ -237,9 +251,11 @@ async def handle_call_tool(
                 ]
 
             response_format = arguments.get("response_format", "both")
+            enable_memory = arguments.get("enable_memory")
+            session_id = arguments.get("session_id")
 
             try:
-                result = await api_client.natural_query(query, response_format)
+                result = await api_client.natural_query(query, response_format, enable_memory, session_id)
                 return [
                     TextContent(
                         type="text",
